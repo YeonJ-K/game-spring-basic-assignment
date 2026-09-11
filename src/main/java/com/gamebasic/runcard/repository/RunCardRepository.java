@@ -8,8 +8,8 @@ import java.util.List;
 
 public interface RunCardRepository extends JpaRepository<RunCard, Long> {
     List<RunCard> findAllByGameOrderByIdAsc(Game game);
-
     void deleteAllByGame(Game game);
+    long countByGame(Game game);
 
     // TODO (Lv 11): @Query 작성
     // List<DeckCount> countByGames(List<Game> games);
