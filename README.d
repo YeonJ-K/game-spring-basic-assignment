@@ -10,10 +10,6 @@
 - Lombok
 
 ## ERD
-```mermaid
-erDiagram
-    GAME ||--o{ RUN_CARD : "has"
-
     GAME {
         Long id PK
         String playerName
@@ -30,18 +26,12 @@ erDiagram
         Long game_id FK
         String cardType
         int acquiredFloor
-    }
-```
-
-- `Game.phase`, `Game.status`는 각각 `GamePhase`, `GameStatus` Enum으로 관리합니다.
-- 게임 목록 조회 응답의 `deckSize`는 별도 컬럼이 아니라, 해당 게임에 속한 `RunCard` 개수를 조회 시점에 계산한 값입니다.
-- `랭킹(/rankings)` 조회는 별도 테이블 없이, `CLEARED` 상태로 종료된 게임 기록을 기준으로 산출됩니다.
-
-## 공통 사항
+            
+## 정의서
 
 ### 상태(Enum) 정의
 
-**GamePhase** — 게임이 멈춰 있는 단계
+**phase** — 게임이 멈춰 있는 단계
 
 | 값 | 설명 |
 |---|---|
@@ -49,7 +39,7 @@ erDiagram
 | `REWARD` | 보상 카드를 고르는 중. 시작 직후와 각 전투 승리 뒤에 머문다. |
 | `FINISHED` | 여정이 끝났다. `status`가 `CLEARED` 또는 `FAILED`다. |
 
-**GameStatus** — 게임의 결과 상태
+**status** — 게임의 결과 상태
 
 | 값 | 설명 |
 |---|---|
@@ -57,19 +47,9 @@ erDiagram
 | `CLEARED` | 10층까지 모두 클리어했다. |
 | `FAILED` | 도중에 HP가 0이 되어 실패했다. |
 
-### 유효성 검증 규칙
-
-| 필드 | 제약 |
-|---|---|
-| `playerName` | 2 ~ 12자, 공백만으로 된 값 불허 |
-| `cardType` | 비어있지 않은 문자열, 공백만으로 된 값 불허 (허용값 목록은 클라이언트가 정의) |
-| `acquiredFloor` | 0 ~ 10 |
-| `currentHp` | 0 ~ 99 |
-| `currentFloor` | 1 ~ 10 |
-
 ### 에러 응답 형식
 
-검증 실패(`400`), 리소스 없음(`404`), 상태 충돌(`409`) 등 예외 상황은 아래 형식으로 응답합니다.
+검증 실패(`400`), 리소스 없음(`404`), 상태 충돌(`409`) 등 예외 상황은 아래 형식으로 응답
 
 ```json
 {
@@ -153,20 +133,4 @@ HP, 층, 단계, 상태와 전체 덱을 저장한다. `deck`은 추가할 카�
   ]
 }
 ```
-
-### 랭킹
-
-| Method | URL | 설명 | 성공 |
-|---|---|---|---|
-| `GET` | `/rankings` | 이번 시즌 10층(최종 보스) 클리어 랭킹 조회 | `200` |
-
-플레이어마다 가장 좋은 기록 하나만 순위에 오르며, `entries`는 `rank` 오름차순이다. 형식이 어긋나거나 정상적인 플레이로 볼 수 없는 기록은 순위에서 제외되고, 그 수가 `excludedCount`로 표시된다.
-
-응답 필드: `season`, `totalRecords`, `excludedCount`, `entries[]`(`rank`, `playerName`, `clearTimeSeconds`, `remainingHp`, `bossTurns`, `deckSize`)
-
-## 구현 메모
-
-- `Game`과 `RunCard`는 1:N 관계이며, `RunCardRepository.findAllByGameOrderByIdAsc(game)`으로 특정 게임의 덱을 ID 오름차순으로 조회한다.
-- 목록 조회의 `deckSize`는 `RunCardRepository.countByGame(game)`으로 계산하며, 현재는 게임 수만큼 카운트 쿼리가 나가는 단순한 구현이다(추후 배치 쿼리로 최적화 예정).
-- 이름 변경(`PATCH /games/{gameId}`)은 별도 `save()` 호출 없이, 트랜잭션 안에서 엔티티 필드를 바꾸고 변경 감지(dirty checking)로 반영한다.
-- 존재하지 않는 게임 ID 요청은 서비스 계층의 `findGame(gameId)`에서 `ResponseStatusException(HttpStatus.NOT_FOUND)`를 던져 `404`로 응답한다.
+\
